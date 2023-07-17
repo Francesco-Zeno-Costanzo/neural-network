@@ -65,11 +65,11 @@ def init(n):
     '''
     # Hidden layer
     # nx2 because 2 featurs and n neurons
-    W1 = np.random.randn(n, 2) # Xavier initialization
+    W1 = np.random.randn(n, 2)
     b1 = np.random.rand(n, 1)
     # Output layer
     # 1xn because 1 output and n neurons
-    W2 = np.random.randn(1, n) # Xavier initialization
+    W2 = np.random.randn(1, n)
     b2 = np.random.rand(1, 1)
     return W1, b1, W2, b2
 
