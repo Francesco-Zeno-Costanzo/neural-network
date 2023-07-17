@@ -314,8 +314,8 @@ if __name__ == '__main__':
             Y[i] = 0
     
     # split dataset in test and train 
-    X_train, Y_train = X[:, :-M], Y[:-M] 
-    X_test,  Y_test  = X[:, : M], Y[: M]
+    X_train, Y_train = X[:, :N-M ], Y[:N-M ] 
+    X_test,  Y_test  = X[:,  N-M:], Y[ N-M:]
     
 #=============================================================
 #   Parameter of computation
