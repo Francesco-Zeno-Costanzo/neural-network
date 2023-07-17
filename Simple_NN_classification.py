@@ -64,10 +64,12 @@ def init(n):
         weights for output layer
     '''
     # Hidden layer
-    W1 = np.random.randn(n, 2) # 2 becaus 2 imput
+    # nx2 because 2 featurs and n neurons
+    W1 = np.random.randn(n, 2) # Xavier initialization
     b1 = np.random.rand(n, 1)
     # Output layer
-    W2 = np.random.randn(1, n) # 1 because 1 output
+    # 1xn because 1 output and n neurons
+    W2 = np.random.randn(1, n) # Xavier initialization
     b2 = np.random.rand(1, 1)
     return W1, b1, W2, b2
 
@@ -168,7 +170,7 @@ def accuracy(Yp, Y):
 # Train of the network
 #=============================================================
 
-def train(X, Y, n_epoch, neuro, step, sp=False):
+def train(X, Y, n_epoch, neuro, step, sp=False, verbose=True):
     '''
     function for the training of the network
     
@@ -197,23 +199,40 @@ def train(X, Y, n_epoch, neuro, step, sp=False):
     '''
 
     W1, b1, W2, b2 = init(neuro)
-    L = np.zeros(n_epoch)
-    A = np.zeros(n_epoch)
+    L_t = np.zeros(n_epoch) # training loss
+    L_v = np.zeros(n_epoch) # validation loss
+    N = X.shape[1]          # total number of data
+    M = N//4                # nuber of data for validation
+     
+    # split dataset in validation and train 
+    X_train, Y_train = X[:, :N-M ], Y[:N-M ] 
+    X_valid, Y_valid = X[:,  N-M:], Y[ N-M:]
+    
     for i in range(n_epoch):
+        # train
+        A1, A2 = predict(X_train, W1, b1, W2, b2)
+        L_t[i] = Loss(A2, Y_train)
+        # validation
+        _, Yp = predict(X_valid, W1, b1, W2, b2)
+        L_v[i] = Loss(Yp, Y_valid)
+        # update
+        W1, b1, W2, b2 = backpropagation(X_train, Y_train, step, A1, A2, W1, b1, W2, b2)
         
-        A1, A2 = predict(X, W1, b1, W2, b2)
-        L[i] = Loss(A2, Y)
-        A[i] = accuracy(A2, Y)
-        W1, b1, W2, b2 = backpropagation(X, Y, step, A1, A2, W1, b1, W2, b2)
-        
-        print(f'Loss = {L[i]:.5f}, accuracy = {A[i]:.5f}, epoch = {i} \r', end='')
-        
+        if verbose:
+            acc = accuracy(A2, Y_train)
+            print(f'Loss = {L_t[i]:.5f}, accuracy = {acc:.5f}, epoch = {i} \r', end='')
+              
         if not i % 100:
-            if sp : plot(X, Y, (W1, b1, W2, b2), i)
+            if sp : plot(X_train, Y_train, (W1, b1, W2, b2), i)
     
     print()
     
-    return W1, b1, W2, b2, L, A
+    result = {'params'     : (W1, b1, W2, b2),
+              'train_Loss' : L_t,
+              'valid_Loss' : L_v,
+             }
+        
+    return result
 
 #=============================================================
 # Plot
@@ -301,8 +320,8 @@ if __name__ == '__main__':
 #   Creation of dataset 
 #=============================================================
 
-    N = 4000                          # number of train points
-    M = 1000                          # number of test  points
+    N = 5000                          # Total number of points
+    M = 1000                          # number of test and validation points
     X = np.random.random(size=(2, N)) # Two features
     Y = np.ones(N)                    # one Target
     
@@ -314,6 +333,7 @@ if __name__ == '__main__':
             Y[i] = 0
     
     # split dataset in test and train 
+    # Part of train data will be used for validation
     X_train, Y_train = X[:, :N-M ], Y[:N-M ] 
     X_test,  Y_test  = X[:,  N-M:], Y[ N-M:]
     
@@ -323,34 +343,38 @@ if __name__ == '__main__':
 
     n_epoch = 6000 + 1  # number of epoch
     n_neuro = 20        # number of neurons for the hidden layer
-    lr_rate = 1.5       # learning rate
+    lr_rate = 1.5         # learning rate
     sp_gif  = 0         # save plot and make gif
 
 #=============================================================
 #   Train of the network
 #=============================================================
 
-    W1, b1, W2, b2, L, A = train(X_train, Y_train, n_epoch, n_neuro, lr_rate, sp_gif)
-    plot(X_train, Y_train, (W1, b1, W2, b2), k=n_epoch, close=False, i=0)
+    result = train(X_train, Y_train, n_epoch, n_neuro, lr_rate, sp_gif)
+    
+    parameters = result['params']
+    L_t = result['train_Loss']
+    L_v = result['valid_Loss']
+    
     if sp_gif : GIF('frames', 'NN')
-    print(f'Loss     on train set = {L[-1]:.5f}')
-    print(f'Accuracy on train set = {A[-1]:.5f}')
+    print(f'Loss on train      set = {L_t[-1]:.5f}')
+    print(f'Loos on validation set = {L_v[-1]:.5f}')
 
 #=============================================================
 #   Test of the network
 #=============================================================    
-    _, A2 = predict(X_test, W1, b1, W2, b2)
+    _, A2 = predict(X_test, *parameters)
     acc  = accuracy(A2, Y_test)
     loss = Loss(A2, Y_test)
-    plot(X_test, Y_test, (W1, b1, W2, b2), k=n_epoch, close=False, i=1)
+    plot(X_test, Y_test, parameters, k=n_epoch, close=False, i=1)
     
     print(f'Loss     on test  set = {loss:.5f}')
     print(f"Accuracy on test  set = {acc:.5f}")
     
     plt.figure(2)
-    plt.plot(np.linspace(1, n_epoch, n_epoch), L, 'b', label='Loss')
-    plt.plot(np.linspace(1, n_epoch, n_epoch), A, 'r', label='accuracy')
-    plt.title('Loss and accuracy', fontsize=15)
+    plt.plot(np.linspace(1, n_epoch, n_epoch), L_t, 'b', label='train Loss')
+    plt.plot(np.linspace(1, n_epoch, n_epoch), L_v, 'r', label='validation loss')
+    plt.title('Binary cross entropy', fontsize=15)
     plt.xlabel('epoch')
     plt.ylabel('Loss')
     plt.legend(loc='best')
