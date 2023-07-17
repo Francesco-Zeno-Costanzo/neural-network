@@ -59,9 +59,9 @@ def init(n):
     Returns
     -------
     W1, b1 : 2darray
-        weights for hidden layer
+        weights and bias for hidden layer
     W2, b2 : 2darray
-        weights for output layer
+        weights and bias for output layer
     '''
     # Hidden layer
     # nx2 because 2 featurs and n neurons
@@ -189,13 +189,15 @@ def train(X, Y, n_epoch, neuro, step, sp=False, verbose=True):
     sp : boolean, optional, default False
         if True a plot of boundary is saved each 100 epoch
         usefull for animations 
+    verbose : boolean, optional, default True
+        if True print loss and accuracy each 100 epoch
     
     Returns
     -------
-    W1, b1, W2, b2 : 2darray
-        parameter of the trained network
-    L : 1darray
-        value of the loss at each epoch
+    result : dict
+        params -> W1, b1, W2, b2 weights and bias of network
+        train_Loss -> loss on train data
+        valid_Loss -> loss on validation data
     '''
 
     W1, b1, W2, b2 = init(neuro)
@@ -217,14 +219,14 @@ def train(X, Y, n_epoch, neuro, step, sp=False, verbose=True):
         L_v[i] = Loss(Yp, Y_valid)
         # update
         W1, b1, W2, b2 = backpropagation(X_train, Y_train, step, A1, A2, W1, b1, W2, b2)
-        
-        if verbose:
-            acc = accuracy(A2, Y_train)
-            print(f'Loss = {L_t[i]:.5f}, accuracy = {acc:.5f}, epoch = {i} \r', end='')
               
         if not i % 100:
             if sp : plot(X_train, Y_train, (W1, b1, W2, b2), i)
-    
+            
+            if verbose:
+                acc = accuracy(A2, Y_train)
+                print(f'Loss = {L_t[i]:.5f}, accuracy = {acc:.5f}, epoch = {i} \r', end='')
+            
     print()
     
     result = {'params'     : (W1, b1, W2, b2),
@@ -255,6 +257,8 @@ def plot(X, Y, par, k, close=True, i=0):
         want the figure to be closed, while we have to
         make many for the animation the various figures
         must be closed
+    i : int
+        index of figure
     '''
     
     # bound of plot
