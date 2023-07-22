@@ -227,7 +227,7 @@ def train(X, Y, n_epoch, neuro, step, sp=False, verbose=True):
                 acc = accuracy(A2, Y_train)
                 print(f'Loss = {L_t[i]:.5f}, accuracy = {acc:.5f}, epoch = {i} \r', end='')
             
-    print()
+    if verbose: print()
     
     result = {'params'     : (W1, b1, W2, b2),
               'train_Loss' : L_t,
