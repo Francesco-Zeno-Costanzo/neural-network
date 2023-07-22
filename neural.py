@@ -445,16 +445,58 @@ class NeuralNetwork:
              
         return result
     
-    def compute_confusion_matrix(true, pred):
-    
-    
-        K = len(np.unique(true)) # Number of classes 
-        result = np.zeros((K, K))
+    def confmat(self, true_target, pred_target, plot=True, k=0):
+        '''
+        Function for creation and plot of confusion matrix
         
-        for i in range(len(true)):
-            result[true[i]][pred[i]] += 1
+        Parameters
+        ----------
+        true_target : 1darray
+            vaules that must be predict
+        pred_target : 1darray
+            values that the network has predict
+        plot : bool, optional, default True
+            if True the matix is plotted. 
+        k : int, optional, default 0
+            number of figure, necessary in order not to overlap figures
         
-        return result
+        Return
+        ------
+        mat : 2darray
+            confusion matrix
+        '''
+        
+        dat = np.unique(true_target)      # classes
+        N   = len(dat)                    # Number of classes 
+        mat = np.zeros((N, N), dtype=int) # confusion matrix
+        
+        # creation of confusion matrxi
+        for i in range(len(true_target)):
+            mat[true_target[i]][pred_target[i]] += 1
+       
+        if plot :
+            fig = plt.figure(0, figsize=(7, 7))
+            ax = fig.add_subplot()
+            
+            c = ax.imshow(mat, cmap=plt.cm.Blues) # plot matrix
+            b = fig.colorbar(c, fraction=0.046, pad=0.04)
+            # write on plot the value of predictions
+            for i in range(mat.shape[0]):
+                for j in range(mat.shape[1]):
+                    ax.text(x=j, y=i, s=mat[i, j],
+                    va='center', ha='center')
+            
+            # Label
+            ax.set_xticks(dat, dat)
+            ax.set_yticks(dat, dat)
+            ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)
+
+            plt.xlabel('Predict label', fontsize=15)
+            plt.ylabel('True label', fontsize=15)
+            plt.title('Confusion Matrix', fontsize=15)
+            plt.tight_layout()
+            
+        return mat
         
     
 if __name__ == '__main__':       
