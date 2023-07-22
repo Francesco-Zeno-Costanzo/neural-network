@@ -13,4 +13,4 @@ mnist.py is a test for neural.py
 
 ![](plot/NN.gif) 
 
-![](plot/MNIST.pdf) 
+![](plot/MNIST.png) 
