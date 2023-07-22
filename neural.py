@@ -444,6 +444,17 @@ class NeuralNetwork:
                  }
              
         return result
+    
+    def compute_confusion_matrix(true, pred):
+    
+    
+        K = len(np.unique(true)) # Number of classes 
+        result = np.zeros((K, K))
+        
+        for i in range(len(true)):
+            result[true[i]][pred[i]] += 1
+        
+        return result
         
     
 if __name__ == '__main__':       
