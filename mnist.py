@@ -53,6 +53,8 @@ plt.grid()
 #============================================================= 
 
 A = NN.predict(X_test)
+M = NN.confmat(Y_test, A, plot=True)
+
 acc = NN.accuracy(A, Y_test)
 print(f"Accuracy on test set = {acc:.5f}")
 
