@@ -54,7 +54,9 @@ class NeuralNetwork:
         self.f_act = f_act
         self.dfeat = 0 # dimension of features, number of neurons in the input  layer
         self.dtarg = 0 # dimension of targets,  number of neurons in the output layer
-
+        # size of all data and validationm
+        self.N = 0 # ALL
+        self.M = 0 # Validation
         
         
     def Loss(self, Yp, Y):
@@ -170,7 +172,9 @@ class NeuralNetwork:
     
     def predict(self, X, train_data=False, all_data=False):
         '''
-        Function to made prediction; foward propagation
+        Function to made prediction; feedfoward propagation
+        If you want predict on train data you must consider
+        the division beetwen train and validation
         
         Parameters
         ----------
@@ -367,7 +371,7 @@ class NeuralNetwork:
         return a
           
                
-    def train(self, X, Y, alpha=0.01, b1=0.9, b2=0.999, eps=1e-8, verbose=False):
+    def train(self, X, Y, alpha=0.01, b1=0.9, b2=0.999, eps=1e-8, cut=4, verbose=False):
         '''
         Function for train the network, 
         the data are splitted to copute validation loss
@@ -375,7 +379,7 @@ class NeuralNetwork:
         Parameters
         ----------
         X : 2darray
-            matrix of features
+            matrix of features (features x number of ata)
         Y : 2darray
             matrix of target
         alpha : float, optional default 0.01
@@ -386,6 +390,9 @@ class NeuralNetwork:
             Decay factor for second momentum
         eps : float, optional, default 1e-8
             parameter of adam alghoritm, to avoid division by zero
+        cut : int, optional, default=4
+            fraction of input data to use for validation.
+            E.g. if N is the number of data, we use N/4 for validation and N-N/4 for train
         verbose : bool
             if True print loss and accuracy each 100 epoch
         
@@ -400,12 +407,11 @@ class NeuralNetwork:
         L_t = np.zeros(self.n_epoch) # training loss
         L_v = np.zeros(self.n_epoch) # validation loss
         
-        K = X.shape[0]       # number of features
-        N = X.shape[1]       # total number of data
-        M = N//4             # nuber of data for validation
+        self.N = X.shape[1]       # total number of data
+        self.M = self.N//cut      # nuber of data for validation
         
         # first and last layers
-        self.dfeat = K
+        self.dfeat = X.shape[0]       # number of features
         self.dtarg = np.max(Y)
         if self.dtarg == 1:
             pass
@@ -413,8 +419,8 @@ class NeuralNetwork:
             self.dtarg += 1 # there is 0 class
 
         # split dataset in validation and train 
-        X_train, Y_train = X[:, :N-M ], Y[:N-M ] 
-        X_valid, Y_valid = X[:,  N-M:], Y[ N-M:]
+        X_train, Y_train = X[:, :self.N-self.M ], Y[:self.N-self.M ] 
+        X_valid, Y_valid = X[:,  self.N-self.M:], Y[ self.N-self.M:]
           
         self.initialize() # initialize weights and bias
         
@@ -475,7 +481,7 @@ class NeuralNetwork:
             mat[true_target[i]][pred_target[i]] += 1
        
         if plot :
-            fig = plt.figure(0, figsize=(7, 7))
+            fig = plt.figure(k, figsize=(7, 7))
             ax = fig.add_subplot()
             
             c = ax.imshow(mat, cmap=plt.cm.Blues) # plot matrix
@@ -528,7 +534,7 @@ if __name__ == '__main__':
     n_epoch = 5000 + 1  # number of epoch
     lr_rate = 0.1       # learning rate
 
-    NN = NeuralNetwork([20, 20], n_epoch)
+    NN = NeuralNetwork([50, 50, 50], n_epoch)
     result = NN.train(X_train, Y_train, alpha=lr_rate, verbose=True)
     L_t = result['train_Loss']
     L_v = result['valid_Loss']
