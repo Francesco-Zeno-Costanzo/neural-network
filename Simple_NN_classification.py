@@ -5,10 +5,12 @@ Is possible to choose the dimesions of hidden layer.
 It is also possible to save plots during the run to see how the network is learning.
 In this code, the learning rate is fixed
 """
+import os
 import glob
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+
 
 #=============================================================
 # Loss function binary classification
