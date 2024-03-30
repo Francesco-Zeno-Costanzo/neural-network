@@ -35,10 +35,10 @@ def dataset(img_file, label_file, output_file, n):
     
 # Train 
 path = 'MNIST_data/' 
-dataset(path + "train-images.idx3-ubyte",
-        path + "train-labels.idx1-ubyte",
+dataset(path + "train-images-idx3-ubyte",
+        path + "train-labels-idx1-ubyte",
         path + "mnist_train.csv", 60000)
 # Test
-dataset(path + "t10k-images.idx3-ubyte",
-        path + "t10k-labels.idx1-ubyte",
+dataset(path + "t10k-images-idx3-ubyte",
+        path + "t10k-labels-idx1-ubyte",
         path + "mnist_test.csv",  10000)
