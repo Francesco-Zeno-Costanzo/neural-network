@@ -5,7 +5,7 @@ with a neural network written from scratch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from neural import NeuralNetwork
+from neural import NeuralNetworkClassifier
 
 #=============================================================
 # load of dataset 
@@ -28,11 +28,13 @@ Y_test = np.array([int(y) for y in Y_test])
 #=============================================================
 
 n_epoch = 3000 + 1
-lr_rate = 0.05
-NN = NeuralNetwork([50, 50], n_epoch, f_act='relu')
+lr_rate = 0.01
+
+NN     = NeuralNetworkClassifier([50, 50], n_epoch, f_act='relu')
 result = NN.train(X_train, Y_train, alpha=lr_rate, verbose=True)
-A = NN.predict(X_train[:, :N-N//4 ])
-NN.confmat(Y_train[:N-N//4], A, plot=True, k=0)
+A      = NN.predict(X_train[:, :N-N//4 ])
+
+NN.confmat(Y_train[:N-N//4], A, plot=True, title='Confusion matrix for train data', k=0)
 #plt.savefig("conf_mat_fit_train.pdf")
 L_t = result['train_Loss']
 L_v = result['valid_Loss']
@@ -56,9 +58,9 @@ plt.grid()
 #============================================================= 
 
 A = NN.predict(X_test)
-M = NN.confmat(Y_test, A, plot=True, k=3)
-plt.savefig("conf_mat_fit_test.pdf")
-#acc = NN.accuracy(A, Y_test)
+M = NN.confmat(Y_test, A, plot=True, title='Confusion matrix for test data', k=3)
+#plt.savefig("conf_mat_fit_test.pdf")
+acc = NN.accuracy(A, Y_test)
 print(f"Accuracy on test set = {acc:.5f}")
 
 plt.figure(2, figsize=(16, 10))
