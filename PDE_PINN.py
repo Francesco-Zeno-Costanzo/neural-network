@@ -108,7 +108,7 @@ class NN(nn.Module):
 
 class PINN:
     '''
-    Physics informend neural network
+    Physics informed neural network
     '''
 
     def __init__(self, layers, r_max, r_min):
