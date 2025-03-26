@@ -3,7 +3,6 @@ Simple example code for creating a neural network
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.special import xlogy
 
 np.random.seed(69420)
 
@@ -12,11 +11,9 @@ class NeuralNetworkClassifier:
     This class implement a multilayer perceptron neural network.
     Is possible to choose how many layers use and how many neurons
     are in each layer. 
-    This network is for classifications and the activantion function
+    This network is for classifications and the activation function
     implemented are only tanh and relu, sufficient for demonstration
-    purposes. The opitimizer used is adam, Loss is binary cross entropy.
-    In the case of classifications with multiple classes, one ot encoding
-    is used, and the loss is calculated as the average on each output.
+    purposes. The optimizer used is adam, Loss is cross entropy.
     '''
     
     def __init__(self, layers, n_epoch, f_act='tanh'):
@@ -29,32 +26,32 @@ class NeuralNetworkClassifier:
             list which must contain the number of neurons for each layer
             the number of layers is len(layers) and layers[i] is the 
             number of neurons on the i-th layer. Only hidden layers must
-            be celaderd, input and output are read from data 
+            be declared, input and output are read from data 
         n_epoch : int
             number of training epochs of the network
         f_act : {'tanh', 'relu'}, optional, default tanh
             activation function for hidden layers
         '''
-        # hidden and output layers
+        # Hidden and output layers
         self.layers   = layers
-        self.n_layers = len(self.layers) + 1 # plus one for output layer
-        # number of training epochs
+        self.n_layers = len(self.layers) + 1 # Plus one for output layer
+        # Number of training epochs
         self.n_epoch  = n_epoch
-        # weights, bias and predictions for each layers
+        # Weights, bias and predictions for each layers
         self.W = []
         self.B = []
         self.A = []
         self.Z = []
-        # momenta for update
+        # Momenta for update
         self.mw = []
         self.vw = []
         self.mb = []
         self.vb = []
-        # some parameters of network
+        # Some parameters of network
         self.f_act = f_act
-        self.dfeat = 0 # dimension of features, number of neurons in the input  layer
-        self.dtarg = 0 # dimension of targets,  number of neurons in the output layer
-        # size of all data and validationm
+        self.dfeat = 0 # Dimension of features, number of neurons in the input  layer
+        self.dtarg = 0 # Dimension of targets,  number of neurons in the output layer
+        # Size of all data and validation
         self.N = 0 # ALL
         self.M = 0 # Validation
 
@@ -78,15 +75,9 @@ class NeuralNetworkClassifier:
         -------
         float, loss
         '''
-        if self.dtarg == 1:
-            m = len(Y) # len of data
-            return -np.sum(xlogy(Y, Yp) + xlogy(1 - Y, 1 - Yp)) / m
-        elif self.dtarg > 1:
-            m = len(Y) # len of data
-            Y = self.one_hot(Y)
-            L = [-np.sum(xlogy(Y[i, :], Yp[i,:]) + xlogy(1 - Y[i,:], 1 - Yp[i,:])) / m for i in range(Y.shape[0])]
-            return np.mean(L)
-
+        Y_onehot = self.one_hot(Y)
+        return -np.sum(Y_onehot * np.log(Yp + 1e-9)) / len(Y)
+        
 
     def act(self, x):
         '''
@@ -96,7 +87,7 @@ class NeuralNetworkClassifier:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
           
         Returns
         -------
@@ -116,7 +107,7 @@ class NeuralNetworkClassifier:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
           
         Returns
         -------
@@ -125,10 +116,10 @@ class NeuralNetworkClassifier:
         if self.f_act == 'tanh':
             return 1/np.cosh(x)**2
         if self.f_act == 'relu': 
-            return x > 0    
+            return x > 0
 
 
-    def sigmoid(self, x):
+    def softmax(self, x):
         '''
         Activation function for output layers;
         always sigmoid for a classification
@@ -136,13 +127,14 @@ class NeuralNetworkClassifier:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
           
         Returns
         -------
         sigmoid
         '''
-        return 1/(1+np.exp(-x))
+        exps = np.exp(x - np.max(x, axis=0, keepdims=True))
+        return exps / np.sum(exps, axis=0, keepdims=True)
 
 
     def initialize(self):
@@ -155,18 +147,18 @@ class NeuralNetworkClassifier:
     
         l = [self.dfeat] + self.layers + [self.dtarg]
 
-        # he initialization for hidden layers; good for relu
+        # He initialization for hidden layers; good for relu
         for i in range(1, self.n_layers):
             s = np.sqrt(2/l[i])
             self.W.append(np.random.randn(l[i], l[i-1]) * s )
             self.B.append(np.random.randn(l[i], 1     ) * s )
                 
-        # random initialization, for output Xavier initialization
+        # Random initialization, for output Xavier initialization
         M = np.sqrt( 6 / (l[-1] + l[-2]) )
         self.W.append( (2*np.random.rand(l[-1], l[-2]) - 1) * M)
         self.B.append( (2*np.random.rand(l[-1], 1)     - 1) * M)
         
-        # initialization of momenta for minimizzation
+        # Initialization of momenta for minimization
         for i in range(self.n_layers):
             self.mw.append(np.zeros(self.W[i].shape))
             self.mb.append(np.zeros(self.B[i].shape))
@@ -183,7 +175,7 @@ class NeuralNetworkClassifier:
         Parameters
         ----------
         X : 2d array
-            matrix of featurs
+            matrix of features
         train_data : bool, optional, default False
             If True the propagation is done on self.A and self.Z because
             for backpropagation we must use each iteration on network-
@@ -192,7 +184,7 @@ class NeuralNetworkClassifier:
         all_data : bool, optional, default False
             if True all output is returned with all values, while if False
             only the predicted class is returned.
-            Usefull only for muticlass classifications
+            useful only for muticlass classifications
 
         Returns
         -------
@@ -205,10 +197,10 @@ class NeuralNetworkClassifier:
                 self.Z.append(self.W[i] @ self.A[i] + self.B[i])
 
                 if i == self.n_layers-1:
-                    # activation function for last layer
-                    self.A.append(self.sigmoid(self.Z[i]))
+                    # Activation function for last layer
+                    self.A.append(self.softmax(self.Z[i]))
                 else:
-                    # activation function for all other layers
+                    # Activation function for all other layers
                     self.A.append(self.act(self.Z[i]))
 
         else :
@@ -217,20 +209,14 @@ class NeuralNetworkClassifier:
                 Z = self.W[i] @ A + self.B[i]
                 
                 if i == self.n_layers-1:
-                    # activation function for last layer
-                    A = self.sigmoid(Z)
+                    # Activation function for last layer
+                    A = self.softmax(Z)
 
                 else:
-                    # activation function for all other layers
+                    # Activation function for all other layers
                     A = self.act(Z)
 
-            if self.dtarg > 1 :
-                if not all_data:
-                    return np.argmax(A, 0)
-                else :
-                    return A
-            elif self.dtarg == 1 :
-                return A
+            return np.argmax(A, 0) if not all_data else A  # Output finale
 
 
     def one_hot(self, Y):
@@ -291,12 +277,12 @@ class NeuralNetworkClassifier:
 
         if self.dtarg > 1: Y = self.one_hot(Y)
 
-        # output layer
+        # Output layer
         delta  = self.A[-1] - Y
         db[-1] = np.sum(delta, axis=1, keepdims=True) / m
         dw[-1] = delta @ self.A[-2].T / m
 
-        # loop over hidden layers
+        # Loop over hidden layers
         for l in range(2, self.n_layers):
             z = self.Z[-l]
             delta = (self.W[-l+1].T @ delta) * self.d_act(z)
@@ -308,13 +294,13 @@ class NeuralNetworkClassifier:
 
     def adam(self, epoch, dW, dB, alpha, b1, b2, eps):
         '''
-        Implementation of Adam alghoritm, Adaptive Moment Estimation for
+        Implementation of Adam algorithm, Adaptive Moment Estimation for
         update of weights and bias.
 
         Parameters
         ----------
         epoch : int
-            cuttente iteration
+            current iteration
         dW : 2darray
             dloss/dw gradient for update of weights
         dB : 2darray
@@ -326,18 +312,18 @@ class NeuralNetworkClassifier:
         b2 : float, optional, default 0.999
             Decay factor for second momentum
         eps : float, optional, default 1e-8
-            parameter of alghoritm, to avoid division by zero
+            parameter of algorithm, to avoid division by zero
         '''
 
         for i in range(1, self.n_layers):
-            # udate weights
+            # Update weights
             self.mw[i] = b1 * self.mw[i] + (1 - b1) * dW[i]
             self.vw[i] = b2 * self.vw[i] + (1 - b2) * dW[i]**2
             mw_hat = self.mw[i] / (1 - b1**(epoch + 1) )
             vw_hat = self.vw[i] / (1 - b2**(epoch + 1) )
             dw = alpha * mw_hat / (np.sqrt(vw_hat) + eps)
             self.W[i] -= alpha * dw
-            # update bias
+            # Update bias
             self.mb[i] = b1 * self.mb[i] + (1 - b1) * dB[i]
             self.vb[i] = b2 * self.vb[i] + (1 - b2) * dB[i]**2
             mb_hat = self.mb[i] / (1 - b1**(epoch + 1) )
@@ -384,7 +370,7 @@ class NeuralNetworkClassifier:
         Parameters
         ----------
         X : 2darray
-            matrix of features (features x number of ata)
+            matrix of features (features x number of data)
         Y : 2darray
             matrix of target
         alpha : float, optional default 0.01
@@ -394,7 +380,7 @@ class NeuralNetworkClassifier:
         b2 : float, optional, default 0.999
             Decay factor for second momentum
         eps : float, optional, default 1e-8
-            parameter of adam alghoritm, to avoid division by zero
+            parameter of adam algorithm, to avoid division by zero
         cut : int, optional, default=4
             fraction of input data to use for validation.
             E.g. if N is the number of data, we use N/4 for validation and N-N/4 for train
@@ -409,34 +395,34 @@ class NeuralNetworkClassifier:
             valid_Loss --> loss on validation data
         '''
         
-        L_t = np.zeros(self.n_epoch) # training loss
-        L_v = np.zeros(self.n_epoch) # validation loss
+        L_t = np.zeros(self.n_epoch) # Training loss
+        L_v = np.zeros(self.n_epoch) # Validation loss
 
-        self.N = X.shape[1]       # total number of data
-        self.M = self.N//cut      # nuber of data for validation
+        self.N = X.shape[1]       # Total number of data
+        self.M = self.N//cut      # Number of data for validation
 
-        # first and last layers
-        self.dfeat = X.shape[0]       # number of features
+        # First and last layers
+        self.dfeat = X.shape[0]   # Number of features
         self.dtarg = np.max(Y)
         if self.dtarg == 1:
             pass
         else:
-            self.dtarg += 1 # there is 0 class
+            self.dtarg += 1       # There is 0 class
 
-        # split dataset in validation and train 
+        # Split dataset in validation and train 
         X_train, Y_train = X[:, :self.N-self.M ], Y[:self.N-self.M ] 
         X_valid, Y_valid = X[:,  self.N-self.M:], Y[ self.N-self.M:]
 
-        self.initialize() # initialize weights and bias
+        self.initialize() # Initialize weights and bias
 
         for e in range(self.n_epoch):
-            # train
+            # Train
             self.predict(X_train, train_data=True)
             L_t[e] = self.Loss(self.A[-1], Y_train)
-            # validation
+            # Validation
             Yp = self.predict(X_valid, all_data=True)          
             L_v[e] = self.Loss(Yp, Y_valid)
-            # update
+            # Update
             dW, dB = self.backpropagation(X_train, Y_train)
             self.adam(e, dW, dB, alpha=alpha, b1=b1, b2=b2, eps=eps)
 
@@ -444,8 +430,8 @@ class NeuralNetworkClassifier:
                 acc = self.accuracy(np.argmax(self.A[-1], 0), Y_train)
                 print(f'Loss = {L_t[e]:.5f}, Valid Loss = {L_v[e]:.5f}, accuracy = {acc:.5f}, epoch = {e} \r', end='')
 
-            self.A[:] = [] # I clean the lists otherwise it 
-            self.Z[:] = [] # continues to add to the queue
+            del self.A[:] # I clean the lists otherwise it 
+            del self.Z[:] # continues to add to the queue
 
         if verbose: print()
 
@@ -478,11 +464,11 @@ class NeuralNetworkClassifier:
             confusion matrix
         '''
 
-        dat = np.unique(true_target)      # classes
+        dat = np.unique(true_target)      # Classes
         N   = len(dat)                    # Number of classes 
-        mat = np.zeros((N, N), dtype=int) # confusion matrix
+        mat = np.zeros((N, N), dtype=int) # Confusion matrix
 
-        # creation of confusion matrxi
+        # Creation of confusion matrix
         for i in range(len(true_target)):
             mat[true_target[i]][pred_target[i]] += 1
 
@@ -492,7 +478,7 @@ class NeuralNetworkClassifier:
 
             c = ax.imshow(mat, cmap=plt.cm.Blues) # plot matrix
             b = fig.colorbar(c, fraction=0.046, pad=0.04)
-            # write on plot the value of predictions
+            # Write on plot the value of predictions
             for i in range(mat.shape[0]):
                 for j in range(mat.shape[1]):
                     ax.text(x=j, y=i, s=mat[i, j],
@@ -519,9 +505,9 @@ class NeuralNetworkRegressor:
     This class implement a multilayer perceptron neural network.
     Is possible to choose how many layers use and how many neurons
     are in each layer.
-    This network is for regression and the activantion function
+    This network is for regression and the activation function
     implemented are only tanh and relu, sufficient for demonstration
-    purposes. The opitimizer used is adam, Loss is mean square error.
+    purposes. The optimizer used is adam, Loss is mean square error.
     '''
 
     def __init__(self, layers, n_epoch, f_act='tanh'):
@@ -534,32 +520,32 @@ class NeuralNetworkRegressor:
             list which must contain the number of neurons for each layer
             the number of layers is len(layers) and layers[i] is the
             number of neurons on the i-th layer. Only hidden layers must
-            be celaderd, input and output are read from data
+            be declared, input and output are read from data
         n_epoch : int
             number of training epochs of the network
         f_act : {'tanh', 'relu'}, optional, default tanh
             activation function for hidden layers
         '''
-        # hidden and output layers
+        # Hidden and output layers
         self.layers   = layers
         self.n_layers = len(self.layers) + 1 # plus one for output layer
-        # number of training epochs
+        # Number of training epochs
         self.n_epoch  = n_epoch
-        # weights, bias and predictions for each layers
+        # Weights, bias and predictions for each layers
         self.W = []
         self.B = []
         self.A = []
         self.Z = []
-        # momenta for update
+        # Momenta for update
         self.mw = []
         self.vw = []
         self.mb = []
         self.vb = []
-        # some parameters of network
+        # Some parameters of network
         self.f_act = f_act
-        self.dfeat = 0 # dimension of features, number of neurons in the input  layer
-        self.dtarg = 0 # dimension of targets,  number of neurons in the output layer
-        # size of all data and validationm
+        self.dfeat = 0 # Dimension of features, number of neurons in the input  layer
+        self.dtarg = 0 # Dimension of targets,  number of neurons in the output layer
+        # Size of all data and validation
         self.N = 0 # ALL
         self.M = 0 # Validation
 
@@ -570,7 +556,7 @@ class NeuralNetworkRegressor:
 
     def Loss(self, Yp, Y):
         '''
-        loss function,
+        Loss function
 
         Parameters
         ----------
@@ -594,7 +580,7 @@ class NeuralNetworkRegressor:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
 
         Returns
         -------
@@ -614,7 +600,7 @@ class NeuralNetworkRegressor:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
 
         Returns
         -------
@@ -634,7 +620,7 @@ class NeuralNetworkRegressor:
         Parameters
         ----------
         x : N x 1 matrix
-            iterpediate step of a layer
+            intermediate step of a layer
 
         Returns
         -------
@@ -653,18 +639,18 @@ class NeuralNetworkRegressor:
 
         l = [self.dfeat] + self.layers + [self.dtarg]
 
-        # he initialization for hidden layers; good for relu
+        # He initialization for hidden layers; good for relu
         for i in range(1, self.n_layers):
             s = np.sqrt(2/l[i])
             self.W.append(np.random.randn(l[i], l[i-1]) * s )
             self.B.append(np.random.randn(l[i], 1     ) * s )
 
-        # random initialization, for output Xavier initialization
+        # Random initialization, for output Xavier initialization
         M = np.sqrt( 6 / (l[-1] + l[-2]) )
         self.W.append( (2*np.random.rand(l[-1], l[-2]) - 1) * M)
         self.B.append( (2*np.random.rand(l[-1], 1)     - 1) * M)
 
-        # initialization of momenta for minimizzation
+        # Initialization of momenta for minimization
         for i in range(self.n_layers):
             self.mw.append(np.zeros(self.W[i].shape))
             self.mb.append(np.zeros(self.B[i].shape))
@@ -672,7 +658,7 @@ class NeuralNetworkRegressor:
             self.vb.append(np.zeros(self.B[i].shape))
 
 
-    def predict(self, X, train_data=False, all_data=False):
+    def predict(self, X, train_data=False):
         '''
         Function to made prediction; feedfoward propagation
         If you want predict on train data you must consider
@@ -681,16 +667,12 @@ class NeuralNetworkRegressor:
         Parameters
         ----------
         X : 2d array
-            matrix of featurs
+            matrix of features
         train_data : bool, optional, default False
             If True the propagation is done on self.A and self.Z because
             for backpropagation we must use each iteration on network-
             It is convenient when the method is called outside the class
             so you must pass only data and get final prediction
-        all_data : bool, optional, default False
-            if True all output is returned with all values, while if False
-            only the predicted class is returned.
-            Usefull only for muticlass classifications
 
         Returns
         -------
@@ -703,23 +685,23 @@ class NeuralNetworkRegressor:
                 self.Z.append(self.W[i] @ self.A[i] + self.B[i])
 
                 if i == self.n_layers-1:
-                    # activation function for last layer
+                    # Activation function for last layer
                     self.A.append(self.linear(self.Z[i]))
                 else:
-                    # activation function for all other layers
+                    # Activation function for all other layers
                     self.A.append(self.act(self.Z[i]))
 
         else :
-            A = np.copy(X) # to start the iteration
+            A = np.copy(X) # To start the iteration
             for i in range(self.n_layers):
                 Z = self.W[i] @ A + self.B[i]
 
                 if i == self.n_layers-1:
-                    # activation function for last layer
+                    # Activation function for last layer
                     A = self.linear(Z)
 
                 else:
-                    # activation function for all other layers
+                    # Activation function for all other layers
                     A = self.act(Z)
 
             return A
@@ -746,17 +728,17 @@ class NeuralNetworkRegressor:
             dloss/db gradient for update of bias
         '''
 
-        m  = len(Y) # len of data
+        m  = len(Y) # Len of data
         db = [np.zeros(b.shape) for b in self.B]
         dw = [np.zeros(w.shape) for w in self.W]
 
 
-        # output layer
+        # Output layer
         delta  = self.A[-1] - Y
         db[-1] = np.sum(delta, axis=1, keepdims=True) / m
         dw[-1] = delta @ self.A[-2].T / m
 
-        # loop over hidden layers
+        # Loop over hidden layers
         for l in range(2, self.n_layers):
             z = self.Z[-l]
             delta = (self.W[-l+1].T @ delta) * self.d_act(z)
@@ -768,13 +750,13 @@ class NeuralNetworkRegressor:
 
     def adam(self, epoch, dW, dB, alpha, b1, b2, eps):
         '''
-        Implementation of Adam alghoritm, Adaptive Moment Estimation for
+        Implementation of Adam algorithm, Adaptive Moment Estimation for
         update of weights and bias.
 
         Parameters
         ----------
         epoch : int
-            cuttente iteration
+            current iteration
         dW : 2darray
             dloss/dw gradient for update of weights
         dB : 2darray
@@ -786,18 +768,18 @@ class NeuralNetworkRegressor:
         b2 : float, optional, default 0.999
             Decay factor for second momentum
         eps : float, optional, default 1e-8
-            parameter of alghoritm, to avoid division by zero
+            parameter of algorithm, to avoid division by zero
         '''
 
         for i in range(1, self.n_layers):
-            # udate weights
+            # Update weights
             self.mw[i] = b1 * self.mw[i] + (1 - b1) * dW[i]
             self.vw[i] = b2 * self.vw[i] + (1 - b2) * dW[i]**2
             mw_hat = self.mw[i] / (1 - b1**(epoch + 1) )
             vw_hat = self.vw[i] / (1 - b2**(epoch + 1) )
             dw = alpha * mw_hat / (np.sqrt(vw_hat) + eps)
             self.W[i] -= alpha * dw
-            # update bias
+            # Update bias
             self.mb[i] = b1 * self.mb[i] + (1 - b1) * dB[i]
             self.vb[i] = b2 * self.vb[i] + (1 - b2) * dB[i]**2
             mb_hat = self.mb[i] / (1 - b1**(epoch + 1) )
@@ -814,7 +796,7 @@ class NeuralNetworkRegressor:
         Parameters
         ----------
         X : 2darray
-            matrix of features (features x number of ata)
+            matrix of features (features x number of data)
         Y : 2darray
             matrix of target
         alpha : float, optional default 0.01
@@ -824,7 +806,7 @@ class NeuralNetworkRegressor:
         b2 : float, optional, default 0.999
             Decay factor for second momentum
         eps : float, optional, default 1e-8
-            parameter of adam alghoritm, to avoid division by zero
+            parameter of adam algorithm, to avoid division by zero
         cut : int, optional, default=4
             fraction of input data to use for validation.
             E.g. if N is the number of data, we use N/4 for validation and N-N/4 for train
@@ -839,38 +821,39 @@ class NeuralNetworkRegressor:
             valid_Loss --> loss on validation data
         '''
 
-        L_t = np.zeros(self.n_epoch) # training loss
-        L_v = np.zeros(self.n_epoch) # validation loss
+        L_t = np.zeros(self.n_epoch) # Training loss
+        L_v = np.zeros(self.n_epoch) # Validation loss
 
-        self.N = X.shape[1]       # total number of data
-        self.M = self.N//cut      # nuber of data for validation
+        self.N = X.shape[1]       # Total number of data
+        self.M = self.N//cut      # Number of data for validation
 
-        # first and last layers
-        self.dfeat = X.shape[0]       # number of features
-        self.dtarg = len(Y.shape)
+        # First and last layers
+        self.dfeat = X.shape[0]       # Number of features
+        self.dtarg = Y.shape[0] if Y.ndim > 1 else 1
 
-        # split dataset in validation and train
+
+        # Split dataset in validation and train
         X_train, Y_train = X[:, :self.N-self.M ], Y[:self.N-self.M ]
         X_valid, Y_valid = X[:,  self.N-self.M:], Y[ self.N-self.M:]
 
-        self.initialize() # initialize weights and bias
+        self.initialize() # Initialize weights and bias
 
         for e in range(self.n_epoch):
-            # train
+            # Train
             self.predict(X_train, train_data=True)
             L_t[e] = self.Loss(self.A[-1], Y_train)
-            # validation
-            Yp = self.predict(X_valid, all_data=True)
+            # Validation
+            Yp = self.predict(X_valid)
             L_v[e] = self.Loss(Yp, Y_valid)
-            # update
+            # Update
             dW, dB = self.backpropagation(X_train, Y_train)
             self.adam(e, dW, dB, alpha=alpha, b1=b1, b2=b2, eps=eps)
 
             if not e % 100 and verbose:
                 print(f'Loss = {L_t[e]:.5f}, Valid Loss = {L_v[e]:.5f}, epoch = {e} \r', end='')
 
-            self.A[:] = [] # I clean the lists otherwise it
-            self.Z[:] = [] # continues to add to the queue
+            del self.A[:] # I clean the lists otherwise it
+            del self.Z[:] # continues to add to the queue
 
         if verbose: print()
 
